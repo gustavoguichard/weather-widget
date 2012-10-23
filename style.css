@@ -1,0 +1,141 @@
+/* CSS Mini Reset */
+
+html, body, div, form, fieldset, legend, label, section, aside, h1, h2, h3, h4, h5, h6
+{margin: 0; padding: 0; font-weight: normal;}
+img { border: 0; }
+
+/* Our Style */
+html{
+	background: #444;
+}
+
+/* In HTML5 you can use the Body tag as a normal Div */
+body{
+	width: 300px;
+	background: #eee;
+	margin: 50px auto;
+	color: #555;
+	padding: 50px 20px 10px;
+	font-family: sans-serif;
+	-moz-box-shadow: 1px 1px 10px #000;
+	-webkit-box-shadow: 1px 1px 10px #000;
+	box-shadow: 1px 1px 10px #000;
+	-moz-border-radius: 10px;
+	-webkit-border-radius: 10px;
+	border-radius: 10px;
+	text-shadow: 1px 1px 0 #fff;
+	background-image: -webkit-gradient(linear, left bottom, left top, color-stop(0, #ddd), color-stop(1, #efefef));
+	background-image: -moz-linear-gradient(center top , #efefef 0%, #ddd 100%);
+}
+
+h4{
+	font: 2.5em serif;
+    left: -30px;
+    text-align: center;
+    letter-spacing: 2px;
+    text-indent: 20px;
+    width: 100%;
+    padding: 10px 50px 10px 10px;
+    position: relative;
+    top: -20px;
+    -moz-box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.6);
+    -webkit-box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.6);
+    box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+input[type=text]{
+	border: 0 none;
+    -webkit-border-radius: 4px;
+    -moz-border-radius: 4px;
+    border-radius: 4px;
+    color: #999999;
+    font: bold 1.3em sans-serif;
+    padding: 10px;
+    width: 90%;
+}
+
+h4, a#mylocation{
+	background: #00B0A1;
+	background-image: -webkit-gradient(linear, left bottom, left top, color-stop(0, #337669), color-stop(1, #00B0A1));
+	background-image: -moz-linear-gradient(center top , #00B0A1 0%, #337669 100%);
+    border: 1px solid #DDDDDD;
+    color: #FFFFFF;
+    text-shadow: 1px -1px 0 #337669;
+}
+
+/* This technique was presented by Jeffrey Way: http://net.tutsplus.com/tutorials/html-css-techniques/quick-tip-practical-css-shapes/ */
+h4:after, h4:before{
+	content: "";
+	width: 0; height: 0;  
+	line-height: 0;  
+	bottom: -11px;
+	position: absolute;
+	z-index: 100;
+	border-top: 10px solid #325b4f;
+}
+
+h4:before{
+	border-left: 10px solid transparent;
+	left: -1px;
+}
+
+h4:after{
+	border-right: 10px solid transparent;
+	right: 1px;
+}
+
+h5{
+	padding: 20px 5px;
+}
+
+a#mylocation{
+    -webkit-border-radius: 4px;
+    -moz-border-radius: 4px;
+    border-radius: 4px;
+    display: block;
+    margin: 30px auto;
+    padding: 10px;
+    text-align: center;
+    text-decoration: none;
+    width: 100px;
+    overflow: hidden;
+}
+
+a#mylocation:hover{
+	-moz-box-shadow: 0px 1px 3px rgba(0,0,0,.6) inset;
+	-webkit-box-shadow: 0px 1px 3px rgba(0,0,0,.6) inset;
+	box-shadow: 0px 1px 3px rgba(0,0,0,.6) inset;
+}
+
+#weathersec img{
+	display: block;
+    margin: 10px auto 0;
+}
+
+span.weekday{
+	display: block;
+    font-weight: bold;
+    margin: 20px auto -10px;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+p{
+	float: right;
+    font-size: 0.8em;
+    margin-left: 20px;
+    margin-right: 30px;
+    position: relative;
+    top: -55px;
+    width: 80px;
+}
+
+p strong{
+    font-size: 2em;
+}
+
+span#locationfound{
+	text-align: center;
+	display: block;
+	margin: 10px;
+}

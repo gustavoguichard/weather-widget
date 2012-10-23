@@ -1,0 +1,473 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+	<meta charset="UTF-8">
+	<title>Create a weather forecast widget with HTML5 Geolocation, YQL and SimplePie</title>
+</head>
+<body>
+<h2>Create a weather forecast widget with HTML5 Geolocation, YQL and SimplePie</h2>
+
+<img src="images/thumb.jpg" alt="Create a weather forecast widget with HTML5 Geolocation, YQL and SimplePie" width="200" height="200"/>
+
+<p>In this tutorial we're going to use modern techniques, like Geolocation and localStorage, to create a weather forecast tool that presents the requested city conditions and also the user location forecast. In case the JavaScript is disabled the tool shall keep working!</p>
+
+<hr />
+<h2>Tutorial Details</h2>
+<ul>
+	<li><b>Program</b>: HTML5, PHP, SimplePie, YQL, jQuery, CSS3</li>
+	<li><b>Difficulty:</b> Intermediate</li>
+	<li><b>Estimated Completion Time:</b> 40 minutes</li>
+</ul>
+
+<hr />
+<h3>Scripts</h3>
+<p>We'll use several scripts and libraries, it's interesting that you got some knowledge about each one for a better understanding. Here follows the download links:</p>
+<ul>
+	<li><a href="http://simplepie.org/">SimplePie</a></li>
+	<li><a href="http://simplepie.org/wiki/addons/yahoo_weather">SimplePie Yahoo Weather</a></li>
+	<li><a href="http://jquery.com/">jQuery</a></li>
+	<li><a href="http://modernizr.com/">Modernizr</a></li>
+	<li><a href="http://isithackday.com/hacks/geo/yql-geo-library/">YqlGeo</a></li>
+</ul>
+
+<hr />
+<h2> <span>Step 1</span> Folder structure</h2>
+<div class="tutorial_image"><img src="images/folderstructure.png" border="0" /></div>	
+<blockquote class="pullquote pqRight">
+<p>
+"The 'cache/' folder is important on the production server and needs to have writing permission."
+</p>
+</blockquote>
+<p>First of all let's mount the folder structure of our widget. Download SimplePie and put it in the 'inc/' folder on your server, then copy and paste all the SimplePie Yahoo Weather code in the 'inc/simplepie_yahoo_weather.inc' file.</p>
+<p>Put the Modernizr, jQuery and YqlGeo scripts inside the 'js/' folder. In the 'js/weather.js' file we're going to write the widget scripts.</p>
+<p>In the 'index.php' file we'll have our HTML markup and the 'weather.php' file is where we'll make our requests (whether it will be in Ajax or not).</p>
+<p>Choose a gif image loader and rename it to 'ajax.gif'. Last but not least create the 'style.css' file.</p>
+
+<hr />
+<h2> <span>Step 2</span> The Markup</h2>
+<p>Open the 'index.php' file and write the following lines of code:</p>
+<pre name="code" class="php">
+&lt;!DOCTYPE HTML&gt;
+&lt;html lang="en-US"&gt;
+&lt;head&gt;
+	&lt;meta charset="UTF-8"&gt;
+	&lt;title&gt;The Weather&lt;/title&gt;
+	&lt;link href="style.css" media="screen" rel="stylesheet" type="text/css" /&gt;
+&lt;/head&gt;
+&lt;body&gt;
+	&lt;h4&gt;The Weather&lt;/h4&gt;
+	&lt;form id="cityform" method="POST" action="#"&gt;
+		&lt;input name="cityname" type="text" value="&lt;?php echo $_POST["cityname"];?&gt;" /&gt;
+	&lt;/form&gt;
+	&lt;section id="weathersec"&gt;
+	&lt;?php include_once('weather.php');
+		getWeather(); ?&gt;
+	&lt;/section&gt;
+	&lt;script src="js/modernizr.js" type="text/javascript" charset="utf-8"&gt;&lt;/script&gt;
+	&lt;script src="js/jquery-1.6.2.min.js" type="text/javascript" charset="utf-8"&gt;&lt;/script&gt;
+	&lt;script src="js/yqlgeo.js" type="text/javascript" charset="utf-8"&gt;&lt;/script&gt;
+	&lt;script src="js/weather.js" type="text/javascript" charset="utf-8"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+<p>As you can see, this is basic HTML5 markup, besides the following details:</p>
+<ul>
+	<li><strong>Line 10:</strong> We've created a form "#cityform" with the action "#" because as long as we POST the parameters, the page will be refreshed with the queried informations.</li>
+	<li><strong>Line 11:</strong> In the 'cityname' input value, we've set the last requested information.</li>
+	<li><strong>Lines 13-20:</strong> We created the '#weathersec' secion that loads the forecast info, also included the 'weather.php' code and then we call <em>getWeather</em> function which returns the data. So we've added all the JS scripts that we're gonna be using in the correct order.</li>
+</ul>
+
+<hr />
+<h2> <span>Step 3</span> The Back-end</h2>
+<p>I'll put the PHP code divided so I can explain by functions. All functions belongs to 'weather.php' file.</p>
+<p>With this code completed even if the JavaScript is disabled the widget shall work for the 'cityname' input submits.</p>
+
+<h3> Getting the content with YQL </h3>
+<p>The following code was extracted from the <a href="http://net.tutsplus.com/tutorials/other/an-api-for-the-web-learning-yql/">Andrew Burguess's article</a> and splitted into two functions explained as follows:</p>
+<pre name="code" class="php">
+&lt;php
+
+function getURLContents($query){
+	$c = curl_init();
+	curl_setopt($c, CURLOPT_URL, $query);
+	curl_setopt($c, CURLOPT_RETURNTRANSFER, 1);
+	curl_setopt($c, CURLOPT_SSL_VERIFYPEER, false);
+	curl_setopt($c, CURLOPT_SSL_VERIFYHOST, false);
+	$data = curl_exec($c);
+	curl_close($c);
+	return $data;
+}
+
+...
+</pre>
+<p>These function receives an url parameter, starts the cURL process and returns the requested url contents.</p>
+<pre name="code" class="php">
+function formatQuery($yql){
+	$query = "http://query.yahooapis.com/v1/public/yql?q=";
+	$query .= urlencode($yql);
+	$query .= "&format=json";
+	$result = json_decode(getURLContents($query));
+	return $result->query->results;
+}
+</pre>
+<p>The <em>formatQuery</em> function receives a YQL query string and makes an encode it to url format.</p>
+<p>On <strong>line 5</strong> we send the encoded string to the previous method that returns as JSON (<strong>line 4</strong>), then we transform the JSON to an object with <em>json_decode</em> and assign this data to the '$result' variable. With the object ready, on <strong>line 6</strong>, we return just what matters: the query results!</p>
+
+<h3> The SimplePie Yahoo Weather function </h3>
+<p>The following method was extracted from SimplePie Yahoo Weather's Documentation. You can <a href="http://simplepie.org/wiki/addons/yahoo_weather#example_code">visit this link</a> and take a look at the comments on each line, however it just gets the feed data from a provided url and formats it with the SimplePie Yahoo Weather's addon.</p>
+<pre name="code" class="php">
+function getFeed($woeid){
+	require_once('inc/simplepie.inc');
+	require_once('inc/simplepie_yahoo_weather.inc');
+	 
+	$feed = new SimplePie();
+	$feed->set_feed_url('http://weather.yahooapis.com/forecastrss?w=' . $woeid . "&u=f");
+	$feed->set_item_class('SimplePie_Item_YWeather');
+	$feed->init();
+	return $feed->get_item(0);
+}
+</pre>
+
+<p>Yahoo Weather is a web service that offers a weahter forecast feed for anywhere. In order to get the feed, we use the url seen in <strong>line 6</strong>, sending a WOEID code and the wanted temperature unit (f = Fahrenheit or c = Celsius) as parameters.</p>
+<blockquote>
+	<p>From Wikipedia: A WOEID (Where on Earth IDentifier) is a unique reference identifier assigned by Yahoo! to identify any feature on Earth.</p>
+</blockquote>
+<p>We'll pass a WOEID code for that function, this is where the previous functions comes. We can get a WOEID from a city by passing a YQL query like the following:</p>
+<pre name="code" class="sql">
+select woeid from geo.places where text="san diego, ca"
+</pre>
+<p>Try to play with <a href="http://developer.yahoo.com/yql/console/#h=select%20woeid%20from%20geo.places%20where%20text%3D%22san%20diego%2C%20ca%22">the YQL console</a> to contemplate the possibilities!</p>
+
+<h3> Getting the WOEID </h3>
+<p>As promissed, the function below takes care of receiving a city name, mounting a YQL query string, calling the <em>formatQuery</em> function that encodes it all in an url and sends it to <em>getURLContents</em> function which requests the content. Now everything is making sense!</p>
+<pre name="code" class="php">
+function getWoeid($cityname){
+	$n = formatQuery("select woeid from geo.places where text='" . $cityname . "'");
+	if(is_string($n->place->woeid)){
+		return $n->place->woeid;
+	} elseif(is_array($n->place)){
+		return $n->place[0]->woeid;
+	} else {
+		return "";
+	}
+}
+</pre>
+<p>As the string typed by the user in the 'cityname' input can match more than one city in the world or even can match with nowhere, we need to verify the returned data from YQL. If there's more than one result, we'll choose only the first one (<strong>lines 5-6</strong>) or if does not exists a WOEID, we'll return an empty string.</p>
+
+<hr />
+<h2> Making it work! </h2>
+<p>Now we're finishing our 'weather.php' file with the <em>getWeather</em> function which we called on the first file ('index.php') and which will handle all the functions we made and which will generate the markup that we've been wanting:</p>
+<pre name="code" class="php">
+function getWeather(){
+	$woeid = false;
+	$print = "&lt;div id='weatherdata'&gt;";
+
+	if($_GET["woeid"]){
+		$woeid = $_GET["woeid"];
+	} else if($_POST["cityname"]) {
+		$woeid = getWoeid($_POST["cityname"]);
+	}
+	if($woeid != "" && $woeid){
+		
+		$weather = getFeed($woeid);
+		
+		if(!$weather-&gt;get_temperature()){
+			$print .= "&lt;h5&gt;Can't find the location, please try again&lt;/h5&gt;";
+		} else {
+			
+			//$condition_code = $weather-&gt;get_condition_code();
+			$temperature = $weather-&gt;get_temperature();
+			$city = $weather->get_city();
+			$region = $weather->get_region();
+			$condition_image = $weather->get_condition_image();
+			$forecasts = $weather-&gt;get_forecasts();
+			$low = $forecasts[0]-&gt;get_low();
+			$high = $forecasts[0]-&gt;get_high();
+			
+			$print .= "&lt;span id='locationfound'&gt;" . $city . ", " . $region . "&lt;/span&gt;";
+			$print .= "&lt;span class='weekday'&gt;" . date('D') . "&lt;/span&gt;";
+			$print .= "&lt;img src='" . $condition_image . "' style='width:60px;height:60px' /&gt;";
+			$print .= "&lt;p&gt;&lt;strong&gt;" . $temperature . "&ordm; F&lt;/strong&gt;&lt;/p&gt;";
+			$print .= "&lt;p&gt;Max: " . $high . "&lt;/br&gt;Min: " . $low . "&lt;/p&gt;";
+		}
+	} else {
+		if(is_string($woeid)){$print .= "&lt;h5&gt;Can't find your location, please try again&lt;/h5&gt;";}
+	}
+	
+	$print .= "&lt;/div&gt;";
+	
+	echo $print;
+}
+
+if($_GET["woeid"]){
+	getWeather();
+}
+	
+?&gt;
+</pre>
+<blockquote>
+	<p>The Back-end is finished, we can already test it, but first lets go through the code:</p>
+</blockquote>
+<ul>
+	<li><strong>Line 3:</strong> Here we initialize the '$print' variable which, by the end of the method, is gonna print the result within the '#weatherdata' DIV.</li>
+	<li><strong>Lines 5-8:</strong> We're gonna leave GET requests available so we can make Ajax requests later. When there's a 'woeid' parameter sent through GET, we just assign that to '$woeid' and there's no need of YQL functions. Case the request was made by POST, we then call the <em>getWoeid</em> function passing the 'cityname' attribute and assign the returned value to '$woeid'.</li>
+	<li><strong>Line 10:</strong> Verify if '$woeid' exists and isn't an empty string so we keep going through the code. Case there isn't a GET or POST parameter or even if the <em>getWoeid</em> function has failed returning a WOEID, the script returns a notice that it wasn't possible to handle the request (<strong>line 31</strong>).</li>
+	<li><strong>Line 12:</strong> Now that we've got a WOEID we request the Feed.</li>
+	<li><strong>Line 14:</strong> If we can't use the <em>get_temperature</em> function from SimplePie Yahoo Weather's class, then something went wrong through the process and we should warn the user.</li>
+	<li><strong>Line 18:</strong> If you want to use custom icons on your widget, you must use the '$condition_code'. Read the <a href="http://developer.yahoo.com/weather/#codes">Yahoo Code Table</a> to accomplish that.</li>
+	<li><strong>Lines 19-25:</strong> We've assigned the values we wanted to some variables. See <a href="http://simplepie.org/wiki/addons/yahoo_weather#methods">the SimplePie Yahoo Weather's Documentation</a> to know every possibility.</li>
+	<li><strong>Line 27:</strong> We've inserted a '#locationfound' SPAN with the city name and region requested. It's important since Yahoo Weather can return info from a wrong place.</li>
+	<li><strong>Line 28:</strong> Using the PHP method <em>date</em> with 'D' as parameter, we'll get a textual representation of the week day (three letters).</li>
+	<li><strong>Lines 37-39:</strong> Close the DIV '#weatherdata' and print the information.</li>
+	<li><strong>Line 42:</strong> Case the request was made through GET, call the <em>getWeather</em> function.</li>
+</ul>
+<p>Awesome! Look if your widget is working! You should see something like this:</p>
+<div class="tutorial_image"><img src="images/weather_basic.png" border="0" /></div>	
+<p>And when you submit a city name you should see this:</p>
+<div class="tutorial_image"><img src="images/weather_no_script.png" border="0" /></div>
+
+<hr />
+<h2> <span>Step 4</span> Let's have JS fun!</h2>
+<p>Now we know that our widget is working even without script, but life is short and isn't fun without interactivity!</p>
+<h3>Ajaxing the done work</h3>
+<p>First of all let's use the code we built before but without page refreshes, which is important if our tool is a sidebar widget for example.</p>
+<pre name="code" class="js">
+(function($) {
+	
+	var $sec = $('#weathersec');
+	var $cityinput = $('input[name=cityname]');
+		
+	$('#cityform').submit(function(e){
+		e.preventDefault();
+		var city = $cityinput.val();
+		var url = $(this).attr('action');
+		$sec.prepend(getAjaxImg());
+		$.post(url, {cityname: city}, function(data){
+			var content = $(data).find("#weatherdata").html();
+			$sec.html(content);
+			setLocationFound();
+		});
+	})
+	
+	function getAjaxImg(){
+		return "&lt;img id='ajaxloader' src='ajax.gif' style='width:15px;height:15px' /&gt;";
+	}
+
+</pre>
+
+<p>What we've done here:</p>
+<ul>
+	<li><strong>Lines 6-10:</strong> When the user submits the form, first we use <em>e.preventDefault</em> to prevent the standard HTML behavior of refreshing the page (<strong>line 7</strong>). Then we assign the 'cityname' input value and the form action to some local variables. On the <strong>line 10</strong> we call the <em>getAjaxImg</em> function that just returns our loader image and we put that as '#weathersec' first child node.</li>
+	<li><strong>Line 11:</strong> So using the <em>jQuery.post</em> method we sent the requested url and the 'cityname' value as parameters as well as a callback function.</li>
+	<li><strong>Lines 12-13:</strong> After the request is completed, we search for the "#weatherdata" DIV in the returned data putting that result within "#weathersec" DIV, getting rid of the gif loader as well as all information from inside that DIV.</li>
+	<li><strong>Line 14:</strong> We'll talk about this function later.</li>
+</ul>
+
+<h3> HTML5 Geolocation </h3>
+<p>Since we are using HTML5, let's use this nice feature to find out the user's location and get the local forecast in great style. First we should test the browser compatibility then we'll present the option. We're going to use Chris Heilmann's Script: YqlGeo. Beyond the WOEID code, this script provides several useful informations that you may need.</p>
+<pre name="code" class="js">
+	$('a#mylocation').live('click', function(e){
+		e.preventDefault();
+		$sec.html(getAjaxImg());
+		yqlgeo.get('visitor',function(o){
+			if(o.error){
+				alert('Impossible to get your location :(');
+			} else {
+				$sec.load("weather.php?woeid=" + o.place.woeid, function(data){
+					setLocationFound();
+				});
+			}
+		});
+	});
+	if(Modernizr.geolocation) {
+		$sec.after('&lt;a href="#" class="button" id="mylocation"&gt;My location&lt;/a&gt;');
+	}
+</pre>
+<ul>
+	<li><strong>Lines 1-3:</strong> Let's listen the link '#mylocation' that's going to be added dynamically, this is why we use <em>jQuery.live</em> function instead of <em>jQuery.click</em>. We prevent the HTML default behavior with <em>e.preventDefault</em> and set the 'ajax.gif' image in '#weathersec' DIV.</li>
+	<li><strong>Lines 5-8:</strong> The <em>yqlgeo</em> method provide us the data we need and, if everything works, we load the 'weather.php' inside the '#weathersec' DIV passing the WOEID as a GET parameter.</li>
+	<li><strong>Line 14:</strong> We test if the browser supports the Geolocation feature, using Modernizr, and if it's ok, we add the '#mylocation' link, that's already listened, after '#weathersec' DIV.</li>
+</ul>
+
+<h3> HTML5 LocalStorage </h3>
+<p>After the user gets the desired info, it's nice to store this data so he can keep going through the website with no need to retype the location in every page visited. In order to do that, we'll use localStorage, another extremely useful and easy tool that HTML5 brought to us.</p>
+<pre name="code" class="js">
+	function setLocationFound(){
+		var $location = $('#locationfound');
+		$cityinput.val($location.text());
+		if(Modernizr.localstorage) {
+		  localStorage.setItem('weather', $sec.html());
+		}
+		$location.remove();
+	}
+	if(Modernizr.localstorage) {
+		$sec.html(localStorage.weather);
+		setLocationFound();
+		$('#cityform').submit();
+	}
+
+})(jQuery);
+</pre>
+<p>Finally let's see what the <em>setLocationFound</em> function does. It was called twice previously, always after we get the weather info.</p>
+<ul>
+	<li><strong>Lines 2-3:</strong> We'll put '#locationfound' SPAN content, generated by PHP, in the 'cityname' input value.</li>
+	<li><strong>Lines 4-7:</strong> Test if the browser supports localStorage feature, using Modernizr, and if so, we store all the '#weathersec' DIV content for further usage and remove the '#locationfound' SPAN because we don't need repeated info.</li>
+	<li><strong>Lines 9-11:</strong> As long that these lines of code aren't within a function, these lines are going to run in every page refresh/load. Once more, we test if the browser supports localStorage replacing the "#weathersec" DIV HTML content by what we've got stored.</li>
+	<li><strong>Line 12:</strong> Now the form is submitted because the current temperature may have changed since the last page refresh.</li>
+</ul>
+<p>Test your widget again, if everything runs smoothly until here you should see something like this:</p>
+<div class="tutorial_image"><img src="images/weather_no_style.png" border="0" /></div>
+
+<hr />
+<h2> <span>Step 5</span> Time to style</h2>
+<p>We've already accomplished our goals. Now let's present the information decently with just some CSS3 awesomeness.</p>
+<pre name="code" class="css">
+/* CSS Mini Reset */
+
+html, body, div, form, fieldset, legend, label, section, aside, h1, h2, h3, h4, h5, h6
+{margin: 0; padding: 0; font-weight: normal;}
+img { border: 0; }
+
+/* OUR STYLES */
+html{
+	background: #444;
+}
+
+/* In HTML5 you can use the Body tag as a normal DIV */
+body{
+	width: 300px;
+	background: #eee;
+	margin: 20px auto;
+	color: #555;
+	padding: 50px 20px 10px;
+	font-family: sans-serif;
+	-moz-box-shadow: 1px 1px 10px #000;
+	-webkit-box-shadow: 1px 1px 10px #000;
+	box-shadow: 1px 1px 10px #000;
+	-moz-border-radius: 10px;
+	-webkit-border-radius: 10px;
+	border-radius: 10px;
+	text-shadow: 1px 1px 0 #fff;
+	background-image: -webkit-gradient(linear, left bottom, left top, color-stop(0, #ddd), color-stop(1, #efefef));
+	background-image: -moz-linear-gradient(center top , #00B0A1 0%, #337669 100%);
+}
+
+h4{
+	font: 2.5em serif;
+	left: -30px;
+	text-align: center;
+	letter-spacing: 2px;
+	text-indent: 20px;
+	width: 100%;
+	padding: 10px 50px 10px 10px;
+	position: relative;
+	top: -20px;
+	-moz-box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.6);
+	-webkit-box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.6);
+	box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+input[type=text]{
+	border: 0 none;
+	-webkit-border-radius: 4px;
+	-moz-border-radius: 4px;
+	border-radius: 4px;
+	color: #999999;
+	font: bold 1.3em sans-serif;
+	padding: 10px;
+	width: 90%;
+}
+
+h4, a#mylocation{
+	background: #00B0A1;
+	background-image: -webkit-gradient(linear, left bottom, left top, color-stop(0, #337669), color-stop(1, #00B0A1));
+	background-image: -moz-linear-gradient(center top , #00B0A1 0%, #337669 100%);
+	border: 1px solid #DDDDDD;
+	color: #FFFFFF;
+	text-shadow: 1px -1px 0 #337669;
+}
+
+/* This technique was presented by Jeffrey Way: http://net.tutsplus.com/tutorials/html-css-techniques/quick-tip-practical-css-shapes/ */
+h4:after, h4:before{
+	content: "";
+	width: 0; height: 0;  
+	line-height: 0;  
+	bottom: -11px;
+	position: absolute;
+	z-index: 100;
+	border-top: 10px solid #325b4f;
+}
+
+h4:before{
+	border-left: 10px solid transparent;
+	left: -1px;
+}
+
+h4:after{
+	border-right: 10px solid transparent;
+	right: 1px;
+}
+
+h5{
+	padding: 20px 5px;
+}
+
+a#mylocation{
+	-webkit-border-radius: 4px;
+	-moz-border-radius: 4px;
+	border-radius: 4px;
+	display: block;
+	margin: 30px auto;
+	padding: 10px;
+	text-align: center;
+	text-decoration: none;
+	width: 100px;
+	overflow: hidden;
+}
+
+a#mylocation:hover{
+	-moz-box-shadow: 0px 1px 3px rgba(0,0,0,.6) inset;
+	-webkit-box-shadow: 0px 1px 3px rgba(0,0,0,.6) inset;
+	box-shadow: 0px 1px 3px rgba(0,0,0,.6) inset;
+}
+
+#weathersec img{
+	display: block;
+	margin: 10px auto 0;
+}
+
+span.weekday{
+	display: block;
+	font-weight: bold;
+	margin: 20px auto -10px;
+	text-align: center;
+	text-transform: uppercase;
+}
+
+p{
+	float: right;
+	font-size: 0.8em;
+	margin-left: 20px;
+	margin-right: 30px;
+	position: relative;
+	top: -55px;
+	width: 80px;
+}
+
+p strong{
+	font-size: 2em;
+}
+
+span#locationfound{
+	text-align: center;
+	display: block;
+	margin: 10px;
+}
+</pre>
+<p>Since it isn't a CSS tutorial I'm not going to explain all the code, it's already commented in specific parts, however if you want to learn more about CSS... well, you're on the right place! Make a research on the <a href="http://net.tutsplus.com/category/tutorials/html-css-techniques/">existing tutorials</a> here.</p>
+<p>Now your widget is presentable! In a modern browser it should be presented like it follows:</p>
+<div class="tutorial_image"><img src="images/weather_with_style.png" border="0" /></div>
+<h2> Conclusion </h2>
+<p>In this tutorial we've passed through HTML5, CSS3, PHP, YQL, jQuery... but you can go even further! Try to put your own style on the markup or make a wordpress pluggin. It's also good to make the cache with PHP in case that the user doesn't have localStorage. I hope you liked this tutorial and sorry about any english error, it's not my native language :). Cheers!</p>
+</body>
+</html>
